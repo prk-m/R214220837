@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Number Management Service</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .input-field {
+            margin-bottom: 10px;
+        }
+        .btn-submit {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+        }
+        .result {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Number Management Service</h1>
+        <form id="numberForm">
+            <div class="input-field">
+                <label for="url">URL:</label>
+                <input type="text" id="url" name="url" required>
+            </div>
+            <div id="urlContainer"></div>
+            <button type="button" onclick="addUrlField()">Add URL</button>
+            <button type="submit" class="btn-submit">Get Numbers</button>
+        </form>
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        function addUrlField() {
+            var container = document.getElementById('urlContainer');
+            var inputField = document.createElement('div');
+            inputField.classList.add('input-field');
+            inputField.innerHTML = `
+                <label for="url">URL:</label>
+                <input type="text" name="url" required>
+            `;
+            container.appendChild(inputField);
+        }
+
+        document.getElementById('numberForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            var form = event.target;
+            var urls = form.querySelectorAll('input[name="url"]');
+            var resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '';
+
+            var numbers = [];
+
+            var fetchPromises = []; // Array to store fetch promises
+
+            for (var i = 0; i < urls.length; i++) {
+                var url = urls[i].value.trim();
+                if (url !== '') {
+                    // Construct the external URL
+                    var externalUrl = url;
+
+                    // Encode the external URL using encodeURIComponent
+                    var encodedUrl = 'proxy.php?url=' + encodeURIComponent(externalUrl);
+
+                    // Create a fetch promise for each URL
+                    var fetchPromise = fetch(encodedUrl)
+                        .then(function(response) {
+                            if (response.ok) {
+                                return response.json();
+                            } else {
+                                throw new Error('Network response was not OK');
+                            }
+                        })
+                        .then(function(data) {
+                            if ('numbers' in data) {
+                                numbers = numbers.concat(data.numbers);
+                            }
+                        })
+                        .catch(function(error) {
+                            console.error('Fetch Error:', error);
+                        });
+
+                    fetchPromises.push(fetchPromise); // Store the promise in the array
+                }
+            }
+
+            // Wait for all fetch promises to complete
+            Promise.all(fetchPromises)
+                .then(function() {
+                    var result = document.createElement('p');
+                    if (numbers.length > 0) {
+                        result.textContent = 'Numbers: ' + numbers.join(', ');
+                    } else {
+                        result.textContent = 'No numbers found.';
+                    }
+                    resultDiv.appendChild(result);
+                })
+                .catch(function(error) {
+                    console.error('Promise Error:', error);
+                });
+        });
+    </script>
+</body>
+</html>
